@@ -31,5 +31,6 @@ fun Application.module() {
     configureSerialization()
 
     val task = MangaUpdateTask(scrapers)
-    task.scheduleUpdate(60 * 24 * 3) // 3 days
+    val updateInterval = System.getenv("UPDATE_INTERVAL")?.toLong()
+    task.scheduleUpdate(updateInterval ?: 1440)
 }
