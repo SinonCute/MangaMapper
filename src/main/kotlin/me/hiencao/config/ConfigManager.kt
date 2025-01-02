@@ -6,7 +6,6 @@ import org.bspfsystems.yamlconfiguration.file.YamlConfiguration
 import java.io.File
 
 object ConfigManager {
-    private lateinit var config: YamlConfiguration
     private lateinit var tagsMapping: List<TagMapping>
 
     fun init() {
@@ -15,22 +14,11 @@ object ConfigManager {
     }
 
     private fun loadConfig() {
-        val configFile = File(getDirPath(), "config.yml")
         val tagsMappingFile = File(getDirPath(), "data/tags_mapping.yml")
-        config = YamlConfiguration.loadConfiguration(configFile)
         tagsMapping = loadTagMapping(tagsMappingFile)
     }
 
     private fun saveDefaultConfig() {
-        val configFile = File(getDirPath(), "config.yml")
-        if (!configFile.exists()) {
-            configFile.createNewFile()
-            val defaultConfig = ConfigManager::class.java.getResourceAsStream("/config.yml")
-            if (defaultConfig != null) {
-                configFile.writeBytes(defaultConfig.readAllBytes())
-            }
-        }
-
         val genresMappingFile = File(getDirPath(), "data/tags_mapping.yml")
         if (!genresMappingFile.exists()) {
             genresMappingFile.parentFile.mkdirs()
@@ -40,10 +28,6 @@ object ConfigManager {
                 genresMappingFile.writeBytes(defaultGenresMapping.readAllBytes())
             }
         }
-    }
-
-    fun getConfig(): YamlConfiguration {
-        return config
     }
 
     fun getTagsMapping(): List<TagMapping> {
