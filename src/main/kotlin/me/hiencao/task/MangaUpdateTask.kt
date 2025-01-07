@@ -8,6 +8,7 @@ import me.hiencao.models.MangaScraperData
 import me.hiencao.models.type.ProviderType
 import me.hiencao.provider.Scraper
 import me.hiencao.utils.LogUtil
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 private const val SIMILARITY_THRESHOLD = 80
@@ -60,6 +61,7 @@ class MangaUpdateTask(private val scrapers: List<Scraper>) {
             try {
                 val result = scraper.scrapeMangaData(url) ?: return@forEachIndexed
                 scrapedResults.add(result)
+                handleSpecialCase(result, scraper.provider)
                 matchAndUpdate(result, scraper.provider)
             } catch (e: Exception) {
                 LogUtil.error("Failed to scrape URL: $url - ${e.message}")
@@ -70,11 +72,26 @@ class MangaUpdateTask(private val scrapers: List<Scraper>) {
         return scrapedResults
     }
 
+    private suspend fun handleSpecialCase(mangaInfo: MangaScraperData.MangaInfo, provider: ProviderType) {
+        val additionalInfo = mangaInfo.additionalInfo
+        when (provider) {
+            ProviderType.CMANGA -> {
+                val source = additionalInfo["source"] ?: return
+                val sourceId = source.removePrefix("MangaDex ").trim()
+                val mappingId = UUID.randomUUID().toString()
+                mappingDAO.upsertMapping(mappingId, ProviderType.CMANGA, mangaInfo.id)
+                mappingDAO.upsertMapping(mappingId, ProviderType.MANGADEX, sourceId)
+                LogUtil.info("Special case: Matched ${mangaInfo.title} with MangaDex $sourceId")
+            }
+            else -> {}
+        }
+    }
+
     private suspend fun matchAndUpdate(mangaInfo: MangaScraperData.MangaInfo, provider: ProviderType) {
         val matcher = MangaMatcher()
         val matchData = matcher.calculateScore(mangaInfo)
         if (matchData.score >= SIMILARITY_THRESHOLD) {
-            val mappingId = java.util.UUID.randomUUID().toString()
+            val mappingId = UUID.randomUUID().toString()
             mappingDAO.upsertMapping(mappingId, provider, mangaInfo.id)
             mappingDAO.upsertMapping(mappingId, ProviderType.MANGADEX, matchData.manga!!.mangaDexId)
 

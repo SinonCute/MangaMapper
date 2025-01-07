@@ -7,6 +7,7 @@ import me.hiencao.dao.MappingDAO
 import me.hiencao.models.entities.MangaMapping
 import me.hiencao.models.entities.Mapping
 import me.hiencao.models.type.ProviderType
+import me.hiencao.utils.LogUtil
 import org.litote.kmongo.and
 import org.litote.kmongo.coroutine.CoroutineCollection
 import org.litote.kmongo.coroutine.coroutine
@@ -21,11 +22,11 @@ class MappingDAOImpl: MappingDAO {
         )
     }
 
-    override suspend fun getMappingByProvider(providerType: ProviderType, providerId: String): Mapping? {
+    override suspend fun getMappingByProvider(providerType: ProviderType, sourceId: String): Mapping? {
         return collection.findOne(
             and(
                 Filters.eq("providers.providerType", providerType.name),
-                Filters.eq("providers.sourceId", providerId)
+                Filters.eq("providers.sourceId", sourceId)
             )
         )
     }
@@ -38,15 +39,27 @@ class MappingDAOImpl: MappingDAO {
         return collection.countDocuments()
     }
 
-    override suspend fun upsertMapping(mangaId: String, providerType: ProviderType, providerId: String) {
-        val newMangaMapping = MangaMapping(
-            providerType = providerType,
-            sourceId = providerId
+    override suspend fun upsertMapping(mangaId: String, providerType: ProviderType, sourceId: String) {
+        val existingMapping = collection.findOne(
+            Filters.and(
+                Filters.eq("providers.providerType", providerType),
+                Filters.eq("providers.sourceId", sourceId)
+            )
         )
 
-        val existingMapping = collection.findOne(Mapping::mangaId eq mangaId)
+        if (existingMapping != null) {
+            LogUtil.info("Mapping already exists for providerType: $providerType and sourceId: $sourceId")
+            return
+        }
 
-        if (existingMapping == null) {
+        val newMangaMapping = MangaMapping(
+            providerType = providerType,
+            sourceId = sourceId
+        )
+
+        val mangaMapping = collection.findOne(Mapping::mangaId eq mangaId)
+
+        if (mangaMapping == null) {
             collection.insertOne(
                 Mapping(
                     mangaId = mangaId,
@@ -56,12 +69,6 @@ class MappingDAOImpl: MappingDAO {
                 )
             )
         } else {
-            val existingProviders = existingMapping.providers
-
-            if (existingProviders.any { it.providerType == providerType && it.sourceId == providerId }) {
-                return
-            }
-
             collection.updateOne(
                 Filters.eq("mangaId", mangaId),
                 push("providers", newMangaMapping)

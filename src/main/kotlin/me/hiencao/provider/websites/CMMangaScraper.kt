@@ -3,9 +3,14 @@ package me.hiencao.provider.websites
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.cache.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.runBlocking
 import me.hiencao.models.MangaScraperData
 import me.hiencao.provider.Scraper
 import me.hiencao.models.type.ProviderType
@@ -18,6 +23,28 @@ class CMMangaScraper : Scraper() {
 
     override fun getIdFromUrl(url: String): String {
         return url.substringAfterLast("-")
+    }
+
+    override val userAgent: String = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+
+    override val client: HttpClient by lazy {
+        val cookie = runBlocking { getCloudflareCookie(baseUrl) }
+
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 5000
+                connectTimeoutMillis = 3000
+                socketTimeoutMillis = 5000
+            }
+            install(HttpCache)
+            defaultRequest {
+                header(
+                    HttpHeaders.UserAgent,
+                    userAgent
+                )
+                header(HttpHeaders.Cookie, cookie)
+            }
+        }
     }
 
     private val ignoreTags = listOf("manhwa", "manhua")
@@ -50,6 +77,7 @@ class CMMangaScraper : Scraper() {
         val title = infoObject.get("name").asString
         val altTitles = infoObject.getAsJsonArray("name_other")?.map { it.asString } ?: emptyList()
         val tags = infoObject.getAsJsonArray("tags")?.map { it.asString } ?: emptyList()
+        val source = infoObject.get("source").asString
 
         if (tags.any { tag -> ignoreTags.any { it.equals(tag, ignoreCase = true) } }) {
             return null
@@ -60,6 +88,7 @@ class CMMangaScraper : Scraper() {
             title = title,
             altTitles = altTitles,
             tags = tags,
+            additionalInfo = mapOf("source" to source),
         )
     }
 

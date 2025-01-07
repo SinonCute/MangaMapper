@@ -11,6 +11,7 @@ class MangaScraperData {
         val tags: List<String>,
         val status: String = "",
         val chapterNum: Int = 0,
+        val additionalInfo: Map<String, String> = emptyMap(),
     )
 
     @Serializable

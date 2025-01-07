@@ -1,11 +1,14 @@
 package me.hiencao.provider
 
+import com.google.gson.JsonParser
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.cache.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import me.hiencao.dotenv
 import me.hiencao.models.MangaScraperData
 import me.hiencao.models.type.ProviderType
 import nl.adaptivity.xmlutil.EventType
@@ -15,15 +18,15 @@ import java.io.StringReader
 
 abstract class Scraper {
 
-    protected val client: HttpClient = HttpClient(CIO) {
-        install(HttpTimeout) {
-            requestTimeoutMillis = 5000
-            connectTimeoutMillis = 3000
-            socketTimeoutMillis = 5000
-        }
-        install(HttpCache)
-        defaultRequest {
-            header(HttpHeaders.UserAgent, "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+    open val userAgent: String = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    open val client: HttpClient by lazy {
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 5000
+                connectTimeoutMillis = 3000
+                socketTimeoutMillis = 5000
+            }
+            install(HttpCache)
         }
     }
 
@@ -91,5 +94,16 @@ abstract class Scraper {
 
         reader.close()
         return urls
+    }
+
+    suspend fun getCloudflareCookie(url: String): Cookie {
+        val proxyEndpoint = dotenv["PROXY_ENDPOINT"]
+            ?: throw IllegalStateException("Missing 'PROXY_ENDPOINT' in .env file")
+        val rawResponse = HttpClient().get("$proxyEndpoint/cookies?url=$url")
+        val jsonObject = JsonParser.parseString(rawResponse.bodyAsText()).asJsonObject
+        val cfClearance = jsonObject["cookies"]?.asJsonPrimitive?.asString
+            ?: throw IllegalStateException("Missing 'cookies' field in response")
+
+        return Cookie("cf_clearance", cfClearance)
     }
 }

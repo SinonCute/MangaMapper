@@ -13,7 +13,7 @@ group = "me.hiencao"
 version = "0.0.1"
 
 application {
-    mainClass.set("io.ktor.server.netty.EngineMain")
+    mainClass.set("me.hiencao.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
@@ -33,10 +33,10 @@ dependencies {
     implementation("io.ktor:ktor-client-core-jvm:3.0.3")
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("io.ktor:ktor-server-config-yaml-jvm")
     implementation("io.ktor:ktor-client-cio-jvm:3.0.3")
     implementation("io.github.pdvrieze.xmlutil:core-jdk:0.90.3")
     implementation("org.apache.commons:commons-text:1.12.0")
     implementation("org.bspfsystems:yamlconfiguration:2.0.1")
     implementation("org.litote.kmongo:kmongo-coroutine:5.1.0")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.0")
 }

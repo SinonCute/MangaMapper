@@ -25,7 +25,8 @@ suspend fun searchMangaDex(query: String): List<MangaDexSearchResult> {
             val data = result.asJsonObject
             val mangaDexId = data.get("id").asString
             val attributes = data.getAsJsonObject("attributes")
-            val links = attributes.getAsJsonObject("links")
+            val links = attributes.takeIf { it.has("links") && it.get("links").isJsonObject }
+                ?.getAsJsonObject("links") ?: JsonObject()
 
             val aniListId = links.takeIf { it.has("al") }?.get("al")?.asString
             val malId = links.takeIf { it.has("mal") }?.get("mal")?.asString

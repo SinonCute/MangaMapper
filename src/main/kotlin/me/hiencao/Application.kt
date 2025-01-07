@@ -1,5 +1,6 @@
 package me.hiencao
 
+import io.github.cdimascio.dotenv.dotenv
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -11,10 +12,23 @@ import me.hiencao.plugins.configureSerialization
 import me.hiencao.provider.websites.CMMangaScraper
 import me.hiencao.task.MangaUpdateTask
 
+val dotenv = dotenv {
+    directory = "./"
+    ignoreIfMalformed = true
+    ignoreIfMissing = true
+}
+
 fun main() {
+
+    val port = dotenv["PORT"]?.toIntOrNull() ?: 8085
+    val host = "0.0.0.0"
+
+    println("Starting server on $host:$port")
+
     embeddedServer(
         Netty,
-        port = System.getenv("PORT")?.toInt() ?: 8083,
+        port = port,
+        host = host,
         module = Application::module
     ).start(wait = true)
 }
@@ -31,6 +45,6 @@ fun Application.module() {
     configureSerialization()
 
     val task = MangaUpdateTask(scrapers)
-    val updateInterval = System.getenv("UPDATE_INTERVAL")?.toLong()
+    val updateInterval = dotenv["UPDATE_INTERVAL"]?.toLongOrNull()
     task.scheduleUpdate(updateInterval ?: 1440)
 }
