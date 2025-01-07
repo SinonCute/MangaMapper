@@ -47,7 +47,7 @@ class CMMangaScraper : Scraper() {
         }
     }
 
-    private val ignoreTags = listOf("manhwa", "manhua")
+    private val ignoreTags = listOf("manhwa", "manhua", "18+")
 
     override suspend fun fetchSitemapUrls(): List<String> {
         val sitemapContent = client.get("$baseUrl/sitemap_homepage.xml").body<String>()
@@ -60,6 +60,8 @@ class CMMangaScraper : Scraper() {
         }
 
         val allUrls = albumContent.flatMap { extractUrlsFromSitemap(it) }
+
+        allUrls.reversed() // Ditme sech lam vcl
 
         return allUrls
     }
