@@ -77,6 +77,7 @@ class MangaUpdateTask(private val scrapers: List<Scraper>) {
         when (provider) {
             ProviderType.CMANGA -> {
                 val source = additionalInfo["source"] ?: return
+                if (!source.startsWith("MangaDex")) return
                 val sourceId = source.removePrefix("MangaDex ").trim()
                 val mappingId = UUID.randomUUID().toString()
                 mappingDAO.upsertMapping(mappingId, ProviderType.CMANGA, mangaInfo.id)
